@@ -1,21 +1,24 @@
 import 'package:flashcard/country.dart';
+import 'package:flashcard/custom_button.dart';
+import 'package:flashcard/quiz.dart';
 import 'package:flutter/material.dart';
 
 class MyCountryApp extends StatefulWidget {
-  MyCountryApp({Key? key}) : super(key: key);
+  const MyCountryApp({Key? key}) : super(key: key);
 
   @override
   State<MyCountryApp> createState() => _MyCountryAppState();
 }
 
 class _MyCountryAppState extends State<MyCountryApp> {
-  int score = 0;
-  int attempts = 0;
+  Quiz quizScoreCard = Quiz();
+
   bool showAns = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade300,
       appBar: AppBar(
         elevation: 0.0,
         centerTitle: true,
@@ -25,7 +28,7 @@ class _MyCountryAppState extends State<MyCountryApp> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Score = $score/$attempts",
+            "Score = ${quizScoreCard.currentScore}/${quizScoreCard.totalAttempts}",
             style: const TextStyle(fontSize: 25),
           ),
           const SizedBox(
@@ -36,47 +39,53 @@ class _MyCountryAppState extends State<MyCountryApp> {
             height: 200,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Card(
-                child: Column(
-                  children: [
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Text(
-                      showAns ? 'Capital' : 'Country',
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      showAns
-                          ? countries[attempts]['city']!
-                          : countries[attempts]['country']!,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    // Text("Capital City"),
-                    // Text("Capital Name"),
-                  ],
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    showAns = !showAns;
+                  });
+                },
+                child: Card(
+                  child: Column(
+                    children: [
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      Text(
+                        showAns ? 'Capital' : 'Country',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        showAns
+                            ? countries[quizScoreCard.totalAttempts]['city']!
+                            : countries[quizScoreCard.totalAttempts]
+                                ['country']!,
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(
+                        height: 40,
+                      ),
+                      const Text(
+                        'tap for toggle Country/Capital',
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 13,
+                        ),
+                      ),
+                      // Text("Capital City"),
+                      // Text("Capital Name"),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(
             height: 5,
-          ),
-          SizedBox(
-            width: 200.0,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  showAns = !showAns;
-                });
-              },
-              child: Text("Show ${showAns ? 'Question' : 'Answer'}"),
-            ),
           ),
           const SizedBox(
             height: 10.0,
@@ -85,65 +94,16 @@ class _MyCountryAppState extends State<MyCountryApp> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      if (attempts < countries.length - 1) {
-                        score++;
-                        attempts++;
-                      } else {
-                        showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Alert'),
-                                content: const Text('Limit Reached..'),
-                                actions: [
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text("CANCEL"),
-                                  ),
-                                ],
-                              );
-                            });
-                      }
-                    });
-                  },
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.green)),
-                  child: const Text("Correct"),
+                CustomButton(
+                  onPress: markAnswerCorrect,
+                  title: "Correct",
+                  backgroundColor: Colors.green,
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      if (attempts < countries.length - 1) {
-                        attempts++;
-                      } else {
-                        showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Alert'),
-                                content: const Text('Limit Reached..'),
-                                actions: [
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text("CANCEL"),
-                                  ),
-                                ],
-                              );
-                            });
-                      }
-                    });
-                  },
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.red)),
-                  child: const Text("Wrong"),
-                )
+                CustomButton(
+                  onPress: markAnswerWrong,
+                  title: "Wrong",
+                  backgroundColor: Colors.red,
+                ),
               ],
             ),
           ),
@@ -151,15 +111,67 @@ class _MyCountryAppState extends State<MyCountryApp> {
       ),
       floatingActionButton: FloatingActionButton(
         elevation: 0.0,
+        onPressed: resetQuiz,
         child: const Text('Reset'),
-        onPressed: () {
-          setState(() {
-            attempts = 0;
-            score = 0;
-          });
-        },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
+  }
+
+  resetQuiz() {
+    setState(() {
+      quizScoreCard.resetQuiz();
+    });
+  }
+
+  void markAnswerCorrect() {
+    setState(() {
+      if (quizScoreCard.totalAttempts < countries.length - 1) {
+        quizScoreCard.markAnswerCorrect();
+        quizScoreCard.totalAttempts;
+      } else {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Alert'),
+                content: const Text('Limit Reached..'),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("CANCEL"),
+                  ),
+                ],
+              );
+            });
+      }
+    });
+  }
+
+  void markAnswerWrong() {
+    setState(() {
+      if (quizScoreCard.totalAttempts < countries.length - 1) {
+        quizScoreCard.markAnswerWrong();
+      } else {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Alert'),
+                content: const Text('Limit Reached..'),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("CANCEL"),
+                  ),
+                ],
+              );
+            });
+      }
+    });
   }
 }
